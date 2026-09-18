@@ -28,3 +28,6 @@
 .chat{min-width:0}.chat form input::placeholder{opacity:.8}.modeCard{min-height:98px}
 @media(max-width:1180px){.lobbyGrid{grid-template-columns:minmax(260px,.9fr) minmax(0,1.1fr)}.chat{grid-column:1/-1}.modePanel{position:static}.modePanel .modeList{max-height:none}}
 @media(max-width:800px){.lobbyGrid{grid-template-columns:1fr}.lobbyTopMain{grid-template-columns:1fr}.readyCounter span{font-size:22px}.modePanel .modeList{max-height:none}}
+
+/* V6.3 */
+.readyWaiting{display:grid;gap:12px}.readyWaiting .readyBack{background:#f49a2f;color:#111;margin:0;box-shadow:5px 5px 0 #050607}.mcQuest{margin:10px 0;padding:10px;background:#111719;border-left:5px solid #b662ff;font:700 13px Arial,sans-serif}.mcInv{font:13px/1.55 Arial,sans-serif;background:#111719;padding:10px;margin:10px 0}.mc-nether{background:#2b1014}.mc-end{background:#090610}.raceMode canvas{background:#ead9a7}.raceMode .arcadeHelp{font-weight:700}
