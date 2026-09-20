@@ -363,4 +363,4 @@ app.get(/^(?!\/socket\.io|\/health).*/,(_req,res)=>{
 });
 
 const port=Number(process.env.PORT)||3001;
-http.listen(port,()=>console.log(`Еблангейм V7.3 server :${port}`));
+http.listen(port,()=>console.log(`Еблангейм V7.6 server :${port}`));
