@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: eblangame2
-    runtime: node
-    plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm start
-    healthCheckPath: /health
-    autoDeploy: true

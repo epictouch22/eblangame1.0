@@ -1,6 +1,0 @@
-node_modules/
-dist/
-server/dist/
-*.zip
-.env
-.DS_Store
