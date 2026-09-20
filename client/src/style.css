@@ -57,3 +57,35 @@
 .badge-sponsor-15{background:linear-gradient(135deg,#5fe8ff,#1b8fff);color:#06131d}
 .home{padding:28px}.homeLayout{width:min(1120px,96vw);display:grid;grid-template-columns:minmax(360px,520px) minmax(360px,1fr);gap:26px;align-items:stretch}.homeLayout .homecard{width:auto;align-self:center}.homeVersion{display:inline-block;font-size:14px;text-shadow:none;background:#f4c430;color:#111;border:3px solid #111;padding:4px 6px;transform:rotate(3deg);vertical-align:middle}.publicChat{min-height:540px;display:grid;grid-template-rows:auto 1fr auto auto}.publicChatHead{display:flex;justify-content:space-between;gap:12px;align-items:start}.publicChatHead h2{margin:3px 0 12px}.publicChatHead small{font:800 10px Arial,sans-serif;opacity:.6}.publicChatHead>span{background:#59df82;color:#0b1510;border:3px solid #090a0b;box-shadow:3px 3px 0 #090a0b;padding:6px 9px;font-weight:1000;transform:rotate(2deg)}.publicChat .messages{height:auto;min-height:350px}.publicChat form{display:flex;margin-top:10px}.publicChat form input{flex:1;min-width:0}.publicChat form button{width:70px;margin:0}.publicChatError{color:#ff6f82;font:800 12px Arial,sans-serif;margin:8px 0 0}.sponsorsButton{position:fixed;left:18px;bottom:18px;z-index:120;width:auto!important;background:#f4c430;color:#111;border:4px solid #090a0b;box-shadow:6px 6px 0 #050607;padding:12px 17px;font-weight:1000;transform:rotate(-1.5deg)}.sponsorsButton:hover{transform:rotate(1deg) translateY(-2px)}.sponsorsCard{position:fixed;left:18px;bottom:78px;z-index:121;width:min(390px,calc(100vw - 36px));background:#292e30;border:4px solid #090a0b;box-shadow:9px 9px 0 #050607;padding:18px;transform:rotate(-.5deg)}.sponsorsCard h2{margin:4px 0 14px}.sponsorsCard>small{font:900 10px Arial,sans-serif;color:#f4c430;letter-spacing:.1em}.sponsorsCard>div{display:grid;grid-template-columns:1fr auto;gap:12px;padding:11px;background:#151a1c;border-left:5px solid #59df82;margin-top:7px}.sponsorsCard>div strong{color:#f4c430;font-size:20px}.sponsorsClose{position:absolute;right:9px;top:8px;width:auto!important;margin:0!important;padding:5px 8px!important}.whaleGame .arcadeHelp{max-width:950px}
 @media(max-width:900px){.homeLayout{grid-template-columns:1fr}.publicChat{min-height:440px}.publicChat .messages{min-height:260px}.sponsorsButton{left:10px;bottom:10px}.sponsorsCard{left:10px;bottom:68px;width:calc(100vw - 20px)}}
+
+/* V7.4 — centered main menu + compact chat on the right */
+.home{position:relative;display:grid;place-items:center;padding:28px;overflow-x:hidden}
+.homeLayout{position:relative;width:min(520px,90vw);display:block!important}
+.homeLayout .homecard{width:100%!important;margin:0 auto}
+.publicChat{
+  position:absolute;
+  left:calc(100% + 28px);
+  top:50%;
+  transform:translateY(-50%);
+  width:330px;
+  min-height:390px!important;
+  height:390px;
+  padding:16px;
+  display:grid;
+  grid-template-rows:auto 1fr auto auto;
+}
+.publicChatHead h2{font-size:24px;margin:2px 0 8px}
+.publicChatHead small{font-size:8px}
+.publicChat .messages{height:auto!important;min-height:0!important;overflow:auto}
+.publicChat form input{font-size:14px}
+.publicChat form button{width:58px}
+@media(max-width:1100px){
+  .home{overflow-x:auto}
+  .publicChat{left:calc(100% + 18px);width:290px;height:360px;min-height:360px!important}
+}
+@media(max-width:850px){
+  .home{display:block;padding:18px}
+  .homeLayout{width:min(520px,100%);margin:0 auto}
+  .publicChat{position:static;transform:none;width:100%;height:auto;min-height:360px!important;margin-top:22px}
+  .publicChat .messages{min-height:240px!important}
+}
