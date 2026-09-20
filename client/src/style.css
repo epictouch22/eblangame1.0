@@ -149,3 +149,16 @@
     width:calc(100vw - 20px)!important;
   }
 }
+
+/* V7.8 — keep room logo clear of Settings button */
+.lobby>header{
+  padding-left:190px!important;
+}
+@media(max-width:800px){
+  .lobby>header{
+    padding-left:150px!important;
+  }
+  .lobby>header b{
+    font-size:20px!important;
+  }
+}
