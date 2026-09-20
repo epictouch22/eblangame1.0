@@ -89,3 +89,30 @@
   .publicChat{position:static;transform:none;width:100%;height:auto;min-height:360px!important;margin-top:22px}
   .publicChat .messages{min-height:240px!important}
 }
+
+/* V7.5 — global chat on the left, main menu remains centered */
+.homeLayout{position:relative;width:min(520px,90vw);margin:0 auto!important}
+.publicChat{
+  left:auto!important;
+  right:calc(100% + 28px)!important;
+  top:50%!important;
+  transform:translateY(-50%)!important;
+  width:330px!important;
+}
+@media(max-width:1100px){
+  .publicChat{
+    left:auto!important;
+    right:calc(100% + 18px)!important;
+    width:290px!important;
+  }
+}
+@media(max-width:850px){
+  .publicChat{
+    position:static!important;
+    left:auto!important;
+    right:auto!important;
+    top:auto!important;
+    transform:none!important;
+    width:100%!important;
+  }
+}
