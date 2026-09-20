@@ -124,3 +124,28 @@
 .settingsCard>small{font:900 10px Arial,sans-serif;color:#59df82;letter-spacing:.12em}.settingsCard h2{margin:4px 0 15px}.settingsCard>p{font:12px/1.45 Arial,sans-serif;opacity:.65;margin:14px 0 0}.settingsClose{position:absolute;right:9px;top:8px;width:auto!important;margin:0!important;padding:5px 8px!important}
 .cleanToggle{position:relative;display:grid;grid-template-columns:1fr 58px;gap:14px;align-items:center;background:#151a1c;border:3px solid #090a0b;padding:14px;cursor:pointer}.cleanToggle span b,.cleanToggle span em{display:block}.cleanToggle span b{font-size:15px}.cleanToggle span em{font:12px Arial,sans-serif;opacity:.62;margin-top:4px;font-style:normal}.cleanToggle input{position:absolute;opacity:0;pointer-events:none}.cleanToggle>i{position:relative;width:54px;height:29px;background:#3c4447;border:3px solid #090a0b;box-shadow:3px 3px 0 #050607}.cleanToggle>i:after{content:"";position:absolute;left:3px;top:3px;width:17px;height:17px;background:#eee;border:2px solid #090a0b;transition:.15s}.cleanToggle input:checked+i{background:#59df82}.cleanToggle input:checked+i:after{left:27px;background:#f4c430}.cleanPreview{margin-top:12px;padding:12px;background:#111719;border-left:6px solid #f4c430}.cleanPreview b,.cleanPreview span{display:block}.cleanPreview b{font-size:22px}.cleanPreview span{font:12px Arial,sans-serif;opacity:.75;margin-top:5px}
 @media(max-width:850px){.settingsButton{left:10px;bottom:68px}.settingsCard{left:10px;bottom:124px;width:calc(100vw - 20px)}}
+
+/* V7.7 — settings no longer covers sponsors */
+.settingsButton{
+  left:18px!important;
+  top:18px!important;
+  bottom:auto!important;
+}
+.settingsCard{
+  left:18px!important;
+  top:76px!important;
+  bottom:auto!important;
+}
+@media(max-width:850px){
+  .settingsButton{
+    left:10px!important;
+    top:10px!important;
+    bottom:auto!important;
+  }
+  .settingsCard{
+    left:10px!important;
+    top:66px!important;
+    bottom:auto!important;
+    width:calc(100vw - 20px)!important;
+  }
+}
