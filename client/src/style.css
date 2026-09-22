@@ -162,3 +162,56 @@
     font-size:20px!important;
   }
 }
+
+/* Emergency screen — synchronized for everyone in a room */
+.emergencyDock{
+  position:fixed;
+  left:50%;
+  bottom:max(14px,env(safe-area-inset-bottom));
+  transform:translateX(-50%);
+  z-index:45000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  max-width:calc(100vw - 24px);
+}
+.emergencyButton,.emergencyReturn{
+  width:auto!important;
+  margin:0!important;
+  padding:11px 17px!important;
+  border:4px solid #090a0b!important;
+  box-shadow:5px 5px 0 #050607;
+  font-weight:1000;
+  letter-spacing:.06em;
+  white-space:nowrap;
+}
+.emergencyButton{
+  background:#d92735!important;
+  color:#fff!important;
+}
+.emergencyButton:hover{transform:translateY(-2px)}
+.emergencyOverlay{
+  position:fixed;
+  inset:0;
+  z-index:44000;
+  background:#000;
+}
+.emergencyOverlay .emergencyDock{z-index:45000}
+.emergencyReturn{
+  background:#151515!important;
+  color:#d7d7d7!important;
+  border-color:#303030!important;
+  box-shadow:none!important;
+}
+.emergencyWho{
+  color:#6f6f6f;
+  font:700 12px/1.25 Arial,sans-serif;
+  white-space:nowrap;
+}
+.emergencyWho b{color:#989898}
+@media(max-width:600px){
+  .emergencyDock{bottom:max(10px,env(safe-area-inset-bottom));gap:8px}
+  .emergencyButton,.emergencyReturn{padding:10px 13px!important;font-size:12px}
+  .emergencyWho{font-size:10px;max-width:42vw;overflow:hidden;text-overflow:ellipsis}
+}
