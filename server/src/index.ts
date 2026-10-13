@@ -412,6 +412,80 @@ io.on('connection',s=>{
  s.on('mc:attack',(targetId:string)=>{const r=rooms.get(s.data.code),mc=r?.minecraft,a=mc?.players[s.id],b=mc?.players[targetId];if(!r||!mc||!a||a.hp<=0)return;const dmg=mcDamageFor(a);if(targetId==='dragon'&&a.dim==='end'&&!mc.dragonDead&&Math.hypot(a.x,a.y)<=11){mc.dragonHp=Math.max(0,mc.dragonHp-dmg);if(mc.dragonHp<=0){mc.dragonDead=true;sys(r,`${r.players.find(p=>p.id===s.id)?.name||'Игрок'} убил Эндер-дракона! Minecraft пройден.`)}}else if(b&&b.dim===a.dim&&Math.hypot(a.x-b.x,a.y-b.y)<=2)b.hp=Math.max(0,b.hp-dmg);else{const m=mc.mobs.find(m=>m.id===targetId);if(m&&m.dim===a.dim&&Math.hypot(a.x-m.x,a.y-m.y)<=2.3){m.hp-=dmg;if(m.hp<=0){if(m.kind==='pig'||m.kind==='cow')a.inv.food=(a.inv.food||0)+2;if(m.kind==='enderman')a.inv.enderman_eye=(a.inv.enderman_eye||0)+1;if(m.kind==='blaze')a.inv.blaze_rod=(a.inv.blaze_rod||0)+1;mc.mobs=mc.mobs.filter(q=>q.id!==m.id)}}}emit(r)});
  s.on('mc:respawn',()=>{const r=rooms.get(s.data.code),mc=r?.minecraft,p=mc?.players[s.id];if(!r||!mc||!p||p.hp>0)return;p.hp=20;p.hunger=20;p.dim='overworld';const q=mcSpawn(mc);p.x=q.x;p.y=q.y;emit(r)});
  s.on('mc:exit',()=>{const r=rooms.get(s.data.code);const p=r?.players.find(p=>p.id===s.id);if(!r||!p?.host)return;r.minecraft=undefined;sys(r,'Minecraft закрыт. Возвращаемся в лобби.');emit(r)});
+
+ // Cooperative Space GTA traffic is authenticated against this socket's
+ // Eblangame room. The iframe does not choose its room or identity.
+ s.on('space_gta:roster:request',()=>{
+   const r=rooms.get(s.data.code);
+   if(!r?.spaceGta||!r.players.some(p=>p.id===s.id))return;
+   s.emit('space_gta:roster',spaceGtaRoster(r));
+ });
+ s.on('space_gta:presence',(raw:unknown)=>{
+   const r=rooms.get(s.data.code);
+   if(!r?.spaceGta||!r.players.some(p=>p.id===s.id)||!raw||typeof raw!=='object'||Array.isArray(raw))return;
+   const now=Date.now(),previous=spaceGtaPresenceAt.get(s.id)||0;
+   if(now-previous<75)return;
+   spaceGtaPresenceAt.set(s.id,now);
+   const x=raw as Record<string,unknown>;
+   const num=(key:string,limit:number)=>typeof x[key]==='number'&&Number.isFinite(x[key])&&Math.abs(x[key] as number)<=limit?x[key] as number:0;
+   const p=r.players.find(p=>p.id===s.id)!;
+   let boss:Record<string,unknown>|null=null;
+   if(x.bs&&typeof x.bs==='object'&&!Array.isArray(x.bs)){
+     const b=x.bs as Record<string,unknown>;
+     if(typeof b.id==='string'&&/^[a-zA-Z0-9_-]{1,24}$/.test(b.id)&&typeof b.t==='string'&&/^[a-z]{2,5}$/.test(b.t)){
+       boss={id:b.id,t:b.t,
+         x:typeof b.x==='number'&&Number.isFinite(b.x)?Math.max(-1e9,Math.min(1e9,b.x)):0,
+         y:typeof b.y==='number'&&Number.isFinite(b.y)?Math.max(-1e9,Math.min(1e9,b.y)):0,
+         hp:typeof b.hp==='number'&&Number.isFinite(b.hp)?Math.max(0,Math.min(1e9,b.hp)):0,
+         mh:typeof b.mh==='number'&&Number.isFinite(b.mh)?Math.max(1,Math.min(1e9,b.mh)):1};
+     }
+   }
+   const presence:Record<string,unknown>={
+     nm:p.name.slice(0,14),x:num('x',1e9),y:num('y',1e9),
+     vx:num('vx',10000),vy:num('vy',10000),a:num('a',100),
+     sh:Math.max(0,Math.min(20,Math.floor(num('sh',20)))),
+     k:Math.max(0,Math.min(9,Math.floor(num('k',9)))),
+     f:!!x.f,hr:Math.max(0,Math.min(1,num('hr',1))),g:!!x.g,bs:boss
+   };
+   let peers=spaceGtaPeers.get(r.code);
+   if(!peers){peers=new Map();spaceGtaPeers.set(r.code,peers)}
+   const first=!peers.has(s.id);
+   peers.set(s.id,{id:s.id,presence,at:now});
+   if(first)s.emit('space_gta:roster',spaceGtaRoster(r));
+   s.to(r.code).emit('space_gta:presence',{id:s.id,presence});
+ });
+ s.on('space_gta:event',(payload:unknown)=>{
+   const r=rooms.get(s.data.code);
+   if(!r?.spaceGta||!r.players.some(p=>p.id===s.id)||!payload||typeof payload!=='object'||Array.isArray(payload))return;
+   const {event,data}=payload as {event?:unknown;data?:unknown};
+   if(!['chat','bh','bk'].includes(String(event))||!data||typeof data!=='object'||Array.isArray(data))return;
+   const now=Date.now(),rate=spaceGtaEventRate.get(s.id)||{since:now,count:0,chatAt:0};
+   if(now-rate.since>1000){rate.since=now;rate.count=0}
+   if(++rate.count>25)return;
+   const d=data as Record<string,unknown>;
+   let safe:Record<string,unknown>;
+   if(event==='chat'){
+     if(now-rate.chatAt<400)return;
+     rate.chatAt=now;
+     const t=clean(d.t,60).replace(/[<>]/g,'');
+     if(!t)return;
+     safe={n:r.players.find(p=>p.id===s.id)!.name.slice(0,14),t};
+   }else{
+     if(typeof d.id!=='string'||!/^[a-zA-Z0-9_-]{1,24}$/.test(d.id))return;
+     safe={id:d.id};
+     if(event==='bh'){
+       const v=Number(d.d);
+       if(!Number.isFinite(v)||v<=0)return;
+       safe.d=Math.min(50000,Math.round(v));
+     }
+   }
+   spaceGtaEventRate.set(s.id,rate);
+   s.to(r.code).emit('space_gta:event',{event,data:safe});
+ });
+ s.on('space_gta:leave',()=>{
+   const r=rooms.get(s.data.code);
+   if(r)spaceGtaRemovePeer(r,s.id);
+ });
  s.on('chat:send',(raw:string)=>{const r=rooms.get(s.data.code);const p=r?.players.find(p=>p.id===s.id);const text=clean(raw,300);if(!r||!p||!text)return;if(text.toLocaleLowerCase('ru')==='/minecraft'){makeMinecraft(r);return}if(text.toLocaleLowerCase('ru')==='/gta'){if(!p.host)return s.emit('error:msg','SPACE GTA может запускать только хост.');startSpaceGta(r);return}if(text.toLocaleLowerCase('ru')==='/oldgta'){if(!p.host)return s.emit('error:msg','GTA может запускать только хост.');makeGta(r);return}const g=r.game;if(g?.mode==='crocodile'&&g.phase==='playing'){const secret=crocodileWords.get(r.code)||'';const norm=(v:string)=>v.trim().toLocaleLowerCase('ru');if(p.id===g.artistId&&norm(text)===norm(secret))return s.emit('error:msg','Рисующий не может угадывать или писать секретное слово.');if(p.id!==g.artistId&&norm(text)===norm(secret)){p.score+=10;sys(r,`${p.name} отгадал слово «${secret}» и рисует следующим!`);advanceCrocodile(r,p.id);return}}const message:Msg={id:crypto.randomUUID(),playerId:p.id,name:p.name,text,at:Date.now(),badge:p.badge};r.messages.push(message);r.messages=r.messages.slice(-100);io.to(r.code).emit('chat:new',message);if(g?.mode==='trap'&&g.phase==='playing'){for(const m of g.missions.filter(m=>!m.done&&m.targetId===p.id)){const words=text.toLocaleLowerCase('ru').split(/[^\p{L}\p{N}]+/u).filter(Boolean);if(words.includes(m.trigger.toLocaleLowerCase('ru'))){m.done=true;const hunter=r.players.find(x=>x.id===m.playerId);if(hunter){hunter.score+=500;g.completed?.push({hunterId:m.playerId,targetId:p.id,trigger:m.trigger,message:text});sys(r,`${hunter.name} выполнил свою подставу.`)}}}if(g.missions.every(m=>m.done))setTimeout(()=>finishTrap(r),500)}emit(r)});
  s.on('disconnect',()=>{const queueCode=s.data.queueCode as string|undefined;if(queueCode){const qr=rooms.get(queueCode);if(qr){qr.queue=qr.queue.filter(p=>p.id!==s.id);updateQueuePositions(qr);if(!qr.players.length&&!qr.queue.length)rooms.delete(qr.code)}return}const r=rooms.get(s.data.code);if(!r)return;const i=r.players.findIndex(p=>p.id===s.id);if(i<0)return;const [p]=r.players.splice(i,1);delete r.minecraft?.players[p.id];delete r.gta?.players[p.id];spaceGtaRemovePeer(r,p.id);sys(r,`${p.name} вышел из комнаты.`);if(!r.players.length&&!r.queue.length){rooms.delete(r.code);return}if(p.host&&r.players.length)r.players[0].host=true;processQueue(r);if(r.game&&r.players.length<2){finishGame(r);return}if(r.game?.mode==='draw'||r.game?.mode==='monster'||r.game?.mode==='story'||r.game?.mode==='crocodile'||r.game?.mode==='imposter'||r.game?.mode==='one_pixel'){finishGame(r);return}if(r.game&&r.game.mode!=='trap'&&'phase' in r.game&&r.game.phase==='answering'&&'answers' in r.game&&r.game.answers.filter((a:any)=>a.playerId).length===r.players.length)beginVoting(r);else emit(r)});
 });
