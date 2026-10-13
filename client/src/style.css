@@ -215,3 +215,13 @@
   .emergencyButton,.emergencyReturn{padding:10px 13px!important;font-size:12px}
   .emergencyWho{font-size:10px;max-width:42vw;overflow:hidden;text-overflow:ellipsis}
 }
+
+
+/* Space GTA runs as its original standalone canvas inside the room. */
+.spaceGtaHost{height:100dvh;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:#05060f}
+.spaceGtaBar{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:58px;padding:8px 16px;background:#151b27;border-bottom:2px solid #4fd8ff;color:#e8f4ff;font-family:Arial,sans-serif}
+.spaceGtaBar b{font-size:clamp(15px,2.4vw,22px);white-space:nowrap}
+.spaceGtaBar span{font-size:13px;color:#aac5d9}
+.spaceGtaBar button{background:#4fd8ff;color:#061621;border:0;border-radius:7px;box-shadow:none;padding:10px 14px;font-size:13px;font-weight:800;white-space:nowrap}
+.spaceGtaHost iframe{display:block;flex:1;min-height:0;width:100%;border:0;background:#05060f}
+@media(max-width:600px){.spaceGtaBar{min-height:48px;padding:5px 8px;gap:6px}.spaceGtaBar b{font-size:12px}.spaceGtaBar span{font-size:11px}.spaceGtaBar button{font-size:11px;padding:8px}.spaceGtaHelp{display:none}}
