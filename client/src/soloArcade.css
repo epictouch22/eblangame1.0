@@ -18,3 +18,7 @@
 .soloMineResult{margin:15px 0;padding:14px;text-align:center;font-size:15px;background:#652a36}.soloMineResult.won{background:#1d6544}
 .soloFooter{background:#0b1218;padding:12px;text-align:center;font:11px Arial,sans-serif;color:#a5b9bc}
 @media(max-width:530px){.soloHeader{padding:10px}.soloHeaderRight{gap:7px}.soloTabs{padding:9px;gap:7px}.soloTabs button{padding:9px 4px;font-size:11px}.soloBody{padding:8px 10px 16px}.soloMinesControls{grid-template-columns:1fr}.soloMineSummary small{font-size:8px}.soloMineBoard{gap:5px}.soloMineCell{border-width:2px!important;box-shadow:2px 2px 0 #000!important}.soloEntry strong{font-size:16px}}
+
+/* Three standalone arcade modes */
+.soloTabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:530px){.soloTabs{gap:5px}.soloTabs button{font-size:10px;line-height:1.2;padding:9px 2px}}
