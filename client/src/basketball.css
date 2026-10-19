@@ -1,0 +1,26 @@
+.soloBasketball{text-align:center}
+.soloBasketball canvas{
+  display:block;width:min(360px,100%);height:auto;max-width:100%;
+  margin:12px auto;cursor:pointer;touch-action:manipulation;
+  border:4px solid #0b0f16;box-shadow:6px 6px 0 #050607;
+}
+.basketballMessage{
+  background:#182d34;border-left:4px solid #f5bd5b;
+  font:800 13px/1.5 Arial,sans-serif;padding:12px 10px;
+  min-height:46px;margin:16px auto 10px;max-width:560px;color:#f6e3a2;
+}
+.basketballRules{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  max-width:560px;margin:12px auto;
+  text-align:left;font:13px/1.4 Arial,sans-serif;
+}
+.basketballRules span{padding:11px;background:#102027;border:1px solid #345057}
+.basketballRules b{font-size:12px;color:#b6edff}
+.soloBasketball .soloStats{max-width:660px;margin:0 auto 10px}
+.soloBasketball .soloStats span{font-size:12px}
+@media(max-width:500px){
+  .basketballRules{grid-template-columns:1fr}
+  .basketballRules span{padding:8px 10px}
+  .soloBasketball .soloStats{gap:6px}
+  .soloBasketball .soloStats span{padding:7px}
+}
