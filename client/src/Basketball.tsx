@@ -7,6 +7,9 @@ const BALL_X = 118;
 const BALL_RADIUS = 12;
 const RIM_RADIUS_X = 43;
 const RIM_RADIUS_Y = 13;
+const RIM_COLLISION_RADIUS = BALL_RADIUS + 5;
+const RIM_BOUNCE = 0.72;
+const PHYSICS_STEP = 1 / 120;
 const SCORING_HALF_WIDTH = 33;
 const HOOP_GAP = 292;
 const SCROLL_SPEED = 133;
@@ -24,6 +27,8 @@ type Hoop = {
   touched: boolean;
 };
 type Game = {
+  x: number;
+  vx: number;
   y: number;
   velocity: number;
   hoops: Hoop[];
@@ -52,7 +57,7 @@ function randomHoop(previous: Hoop, id: number): Hoop {
 function newGame(): Game {
   const first = initialHoop();
   return {
-    y: 220, velocity: 0,
+    x: BALL_X, vx: 0, y: 220, velocity: 0,
     hoops: [first, randomHoop(first, 1)],
     score: 0, baskets: 0, streak: 0, earned: 0,
     nextId: 2, running: false, over: false, failedBy: '',
@@ -65,12 +70,39 @@ function savedBest() {
     return Number.isSafeInteger(best) && best >= 0 ? best : 0;
   } catch { return 0; }
 }
-function isTouchingRim(ballY: number, hoop: Hoop) {
-  // The rim is allowed to be hit: touching cancels the clean-shot streak,
-  // but is never a fatal collision.
-  return [-RIM_RADIUS_X, RIM_RADIUS_X].some(dx =>
-    Math.hypot(BALL_X - (hoop.x + dx), ballY - hoop.y) <= BALL_RADIUS + 5
-  );
+/**
+ * The two end caps of the hoop are solid circular colliders.
+ * Hoops scroll left at SCROLL_SPEED, so rebound uses the velocity of
+ * the ball relative to the moving rim instead of treating it as static.
+ * The open middle of the ring has no collision.
+ */
+function bounceOffRim(game: Game, hoop: Hoop): boolean {
+  let collided = false;
+  for (const side of [-1, 1]) {
+    const dx = game.x - (hoop.x + side * RIM_RADIUS_X);
+    const dy = game.y - hoop.y;
+    const distanceSquared = dx * dx + dy * dy;
+    if (distanceSquared >= RIM_COLLISION_RADIUS * RIM_COLLISION_RADIUS) continue;
+    const distance = Math.sqrt(distanceSquared);
+    const nx = distance > .0001 ? dx / distance : side;
+    const ny = distance > .0001 ? dy / distance : 0;
+    const penetration = RIM_COLLISION_RADIUS - distance + .05;
+
+    // Resolve overlap before applying impulse to prevent falling through edges.
+    game.x += nx * penetration;
+    game.y += ny * penetration;
+
+    const approachingSpeed = (game.vx + SCROLL_SPEED) * nx + game.velocity * ny;
+    if (approachingSpeed < 0) {
+      const impulse = -(1 + RIM_BOUNCE) * approachingSpeed;
+      game.vx += impulse * nx;
+      game.velocity += impulse * ny;
+    }
+    game.vx = clamp(game.vx, -280, 280);
+    game.velocity = clamp(game.velocity, -550, 680);
+    collided = true;
+  }
+  return collided;
 }
 function drawHoop(ctx: CanvasRenderingContext2D, hoop: Hoop, front: boolean) {
   const color = hoop.blue ? '#4caaff' : '#ff9d3a';
@@ -118,9 +150,9 @@ function drawHoop(ctx: CanvasRenderingContext2D, hoop: Hoop, front: boolean) {
   }
   ctx.restore();
 }
-function drawBall(ctx: CanvasRenderingContext2D, y: number, rotation: number) {
+function drawBall(ctx: CanvasRenderingContext2D, x: number, y: number, rotation: number) {
   ctx.save();
-  ctx.translate(BALL_X, y);
+  ctx.translate(x, y);
   ctx.rotate(rotation);
   ctx.fillStyle = '#e97323';
   ctx.strokeStyle = '#45211b';
@@ -223,66 +255,91 @@ export default function Basketball({
       game.elapsed += dt;
 
       if (game.running && !game.over) {
-        const oldY = game.y;
-        game.velocity += GRAVITY * dt;
-        game.y += game.velocity * dt;
+        // Sub-stepping ensures fast movement can't tunnel through thin rim tips.
+        const steps = Math.max(1, Math.ceil(dt / PHYSICS_STEP));
+        const step = dt / steps;
+        for (let substep = 0; substep < steps && !game.over; substep++) {
+          const oldX = game.x;
+          const oldY = game.y;
+          game.velocity = Math.min(680, game.velocity + GRAVITY * step);
+          // Re-center horizontally between ricochets without removing sideways bounce.
+          game.vx += ((BALL_X - game.x) * 12 - game.vx * 6) * step;
+          game.x += game.vx * step;
+          game.y += game.velocity * step;
 
-        for (const hoop of game.hoops) {
-          hoop.x -= SCROLL_SPEED * dt;
-          const touch = isTouchingRim(game.y, hoop) || isTouchingRim(oldY, hoop);
-          if (touch && !hoop.touched) {
-            hoop.touched = true;
-            if (game.streak) {
-              game.streak = 0;
-              setStreak(0);
-              setLastText('ОБОД! Серия чистых попаданий сброшена');
+          for (const hoop of game.hoops) {
+            const previousHoopX = hoop.x;
+            hoop.x -= SCROLL_SPEED * step;
+            if (bounceOffRim(game, hoop) && !hoop.touched) {
+              hoop.touched = true;
+              if (game.streak) {
+                game.streak = 0;
+                setStreak(0);
+                setLastText('ОБОД! Мяч отскочил, серия сброшена');
+              }
+            }
+
+            const crossingY = hoop.y + (hoop.blue ? -BALL_RADIUS : BALL_RADIUS);
+            const crossesCorrectly = hoop.blue
+              ? oldY > crossingY && game.y <= crossingY
+              : oldY < crossingY && game.y >= crossingY;
+            if (!hoop.scored && crossesCorrectly) {
+              // Interpolate both moving objects at the exact crossing moment.
+              const fraction = clamp((crossingY - oldY) / (game.y - oldY), 0, 1);
+              const crossingX = oldX + (game.x - oldX) * fraction;
+              const crossingHoopX = previousHoopX + (hoop.x - previousHoopX) * fraction;
+              const offset = Math.abs(crossingX - crossingHoopX);
+              if (offset <= SCORING_HALF_WIDTH) {
+                hoop.scored = true;
+                const clean = !hoop.touched && offset <= SCORING_HALF_WIDTH - BALL_RADIUS;
+                const multiplier = clean ? Math.min(99, game.streak + 2) : 1;
+                game.streak = clean ? game.streak + 1 : 0;
+                game.baskets += 1;
+                game.score += multiplier;
+                const reward = BASE_COINS * multiplier;
+                game.earned += reward;
+                earnRef.current(reward);
+                setBaskets(game.baskets);
+                setScore(game.score);
+                setStreak(game.streak);
+                setEarned(game.earned);
+                game.lastText = (hoop.blue ? '🔵 СНИЗУ ВВЕРХ' : '🏀 ПОПАДАНИЕ') +
+                  (clean ? ' · БЕЗ ОБОДА ×' + multiplier : ' · С КАСАНИЕМ ×1') +
+                  ' · +' + reward + ' 🪙';
+                setLastText(game.lastText);
+                if (game.score > bestRef.current) {
+                  bestRef.current = game.score;
+                  setBest(game.score);
+                }
+              }
             }
           }
 
-          const crossesCorrectly = hoop.blue
-            ? oldY > hoop.y - BALL_RADIUS && game.y <= hoop.y - BALL_RADIUS
-            : oldY < hoop.y + BALL_RADIUS && game.y >= hoop.y + BALL_RADIUS;
-          if (!hoop.scored && crossesCorrectly &&
-              Math.abs(BALL_X - hoop.x) <= SCORING_HALF_WIDTH) {
-            hoop.scored = true;
-            const clean = !hoop.touched &&
-              Math.abs(BALL_X - hoop.x) <= SCORING_HALF_WIDTH - BALL_RADIUS;
-            const multiplier = clean ? Math.min(99, game.streak + 2) : 1;
-            game.streak = clean ? game.streak + 1 : 0;
-            game.baskets += 1;
-            game.score += multiplier;
-            const reward = BASE_COINS * multiplier;
-            game.earned += reward;
-            earnRef.current(reward);
-            setBaskets(game.baskets);
-            setScore(game.score);
-            setStreak(game.streak);
-            setEarned(game.earned);
-            game.lastText = (hoop.blue ? '🔵 СНИЗУ ВВЕРХ' : '🏀 ПОПАДАНИЕ') +
-              (clean ? ' · БЕЗ ОБОДА ×' + multiplier : ' · С КАСАНИЕМ ×1') +
-              ' · +' + reward + ' 🪙';
-            setLastText(game.lastText);
-            if (game.score > bestRef.current) {
-              bestRef.current = game.score;
-              setBest(game.score);
-            }
+          // The field boundaries stay lethal; hoop edges only deflect the ball.
+          if (game.x < BALL_RADIUS) {
+            game.x = BALL_RADIUS;
+            game.vx = Math.max(0, -game.vx * .5);
+          }
+          if (game.x > WIDTH - BALL_RADIUS) {
+            game.x = WIDTH - BALL_RADIUS;
+            game.vx = Math.min(0, -game.vx * .5);
+          }
+          if (game.y <= BALL_RADIUS || game.y >= HEIGHT - 43 - BALL_RADIUS) {
+            fail(game, 'Мяч коснулся границы площадки.');
           }
         }
 
-        // Missing a hoop ends the run, just like missing a gap in Flappy Bird.
+        // Missing a hoop still ends the run, as in Flappy Bird.
         const missed = game.hoops.find(hoop =>
-          !hoop.scored && hoop.x + RIM_RADIUS_X < BALL_X - BALL_RADIUS);
+          !hoop.scored && hoop.x + RIM_RADIUS_X < game.x - BALL_RADIUS);
         if (missed) fail(game, missed.blue
           ? 'Синее кольцо пропущено: нужно пройти снизу вверх.'
           : 'Кольцо пропущено: нужно пройти сверху вниз.');
 
         game.hoops = game.hoops.filter(hoop => hoop.x > -RIM_RADIUS_X - 20);
-        let rightmost = game.hoops[game.hoops.length - 1];
+        const rightmost = game.hoops[game.hoops.length - 1];
         if (rightmost && rightmost.x < WIDTH + 145) {
           game.hoops.push(randomHoop(rightmost, game.nextId++));
-        }
-        if (game.y <= BALL_RADIUS || game.y >= HEIGHT - 43 - BALL_RADIUS) {
-          fail(game, 'Мяч коснулся границы площадки.');
         }
       }
 
@@ -307,7 +364,7 @@ export default function Basketball({
       ctx.stroke();
 
       for (const hoop of game.hoops) drawHoop(ctx, hoop, false);
-      drawBall(ctx, game.running || game.over
+      drawBall(ctx, game.x, game.running || game.over
         ? game.y : game.y + Math.sin(game.elapsed * 2.8) * 5, game.elapsed * 2.5);
       for (const hoop of game.hoops) drawHoop(ctx, hoop, true);
 
@@ -360,11 +417,11 @@ export default function Basketball({
       <span><b>🟠 ОРАНЖЕВОЕ</b> — сверху вниз ↓</span>
       <span><b>🔵 СИНЕЕ</b> — снизу вверх ↑</span>
       <span><b>🔥 ЧИСТО</b> — ×2, ×3, ×4…</span>
-      <span><b>💥 ОБОД</b> — можно задеть, но серия сбросится</span>
+      <span><b>💥 ОБОД</b> — мяч отскакивает от краёв, серия сбрасывается</span>
     </div>
     <p className="soloNote">
       Управление: пробел, W, стрелка вверх или касание экрана. За кольцо +15 монет × множитель.
-      Касания кольца не убивают и при попадании дают ×1; чистые попадания увеличивают серию.
+      От левого и правого краёв кольца мяч физически отскакивает, это сбрасывает серию; чистые попадания увеличивают множитель.
       Пропущенное кольцо завершает попытку. Все монеты сохраняются.
     </p>
     {over && <p className="soloNote">Нажми на игровое поле для новой попытки.</p>}
