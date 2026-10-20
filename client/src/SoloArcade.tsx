@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './soloArcade.css';
 import Basketball from './Basketball';
+import Rocket from './Rocket';
 
 const WALLET_KEY = 'eblangame.solo.wallet.v1';
 const BEST_KEY = 'eblangame.solo.flappy.best.v1';
@@ -403,7 +404,7 @@ function Mines({ balance, onSpend, onEarn }: {
 
 export default function SoloArcade() {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<'flappy' | 'basketball' | 'mines'>('flappy');
+  const [tab, setTab] = useState<'flappy' | 'basketball' | 'mines' | 'rocket'>('flappy');
   const [balance, setBalance] = useState(() => readInteger(WALLET_KEY));
 
   useEffect(() => {
@@ -433,7 +434,7 @@ export default function SoloArcade() {
   return <>
     <button className="soloEntry" onClick={() => setOpen(true)}>
       <strong>🎮 ОДИНОЧНЫЕ ИГРЫ</strong>
-      <span>🐤 Flappy Bird · 🏀 Баскетбол → 🪙 монеты → 💎 Шахта</span>
+      <span>🐤 Flappy Bird · 🏀 Баскетбол → 🪙 монеты → 💎 Шахта · 🚀 Ракетка</span>
       <small>Баланс: {coins(balance)} 🪙 · ИГРАТЬ БЕЗ КОМНАТЫ →</small>
     </button>
     <div className="soloOverlay" style={{ display: open ? 'flex' : 'none' }} role="dialog"
@@ -449,11 +450,13 @@ export default function SoloArcade() {
           <button className={tab === 'flappy' ? 'selected' : ''} onClick={() => setTab('flappy')}>🐤 FLAPPY BIRD <small>ЗАРАБОТАТЬ</small></button>
           <button className={tab === 'basketball' ? 'selected' : ''} onClick={() => setTab('basketball')}>🏀 БАСКЕТБОЛ <small>ЗАРАБОТАТЬ</small></button>
           <button className={tab === 'mines' ? 'selected' : ''} onClick={() => setTab('mines')}>💎 ШАХТА <small>РИСКНУТЬ</small></button>
+          <button className={tab === 'rocket' ? 'selected' : ''} onClick={() => setTab('rocket')}>🚀 РАКЕТКА <small>CRASH</small></button>
         </nav>
         <div className="soloBody">
           <div style={{ display: tab === 'flappy' ? 'block' : 'none' }}><FlappyBird active={open && tab === 'flappy'} onEarn={earn} /></div>
           <div style={{ display: tab === 'basketball' ? 'block' : 'none' }}><Basketball active={open && tab === 'basketball'} onEarn={earn} /></div>
           <div style={{ display: tab === 'mines' ? 'block' : 'none' }}><Mines balance={balance} onSpend={spend} onEarn={earn} /></div>
+          <div style={{ display: tab === 'rocket' ? 'block' : 'none' }}><Rocket balance={balance} onSpend={spend} onEarn={earn} /></div>
         </div>
         <footer className="soloFooter">Виртуальные монеты · Без покупок и вывода денег · Прогресс хранится в этом браузере</footer>
       </div>
